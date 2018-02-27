@@ -11,8 +11,8 @@ from sklearn import datasets
 from sklearn import preprocessing
 from sklearn import tree
 
-_FILEPATH = "2002_violent_cleaned.csv"
-_POSTCLEANEDPATH = "2002_violent_postcleaned.csv"
+_FILEPATH = "../data/2002_violent_cleaned.csv"
+_POSTCLEANEDPATH = "../data/2002_violent_postcleaned.csv"
 
 def get_headers(filename):
     with open(filename) as f:
@@ -79,11 +79,11 @@ def main():
 
 	index = 0
 	'''
-	for tree_in_forest in clf.estimators_:
+	for tree_ in clf.estimators_:
 		if (index > 1):
 			break;
-		with open('depth=10_tree_' + str(index) + '.dot', 'w') as my_file:
-			my_file = tree.export_graphviz(tree_in_forest, out_file = my_file)
+		with open('../visuals/depth=10_tree_' + str(index) + '.dot', 'w') as visual:
+			visual = tree.export_graphviz(tree_, out_file = visual)
 		index = index + 1
 	'''
 
