@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd 
 import csv
 import io
+import matplotlib.pyplot as plt
+import seaborn as sns; sns.set()
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
@@ -11,8 +13,11 @@ from sklearn import datasets
 from sklearn import preprocessing
 from sklearn import tree
 
-_FILEPATH = "../data/2002_violent_cleaned.csv"
-_POSTCLEANEDPATH = "../data/2002_violent_postcleaned.csv"
+_YEAR = "2004"
+_FILE2002 = "../data/2002_violent_cleaned.csv"
+_POSTCLEANED2002 = "../data/2002_violent_postcleaned.csv"
+_FILETEST = "../data/" + _YEAR + "_violent_cleaned.csv"
+_POSTCLEANEDTEST = "../data/" + _YEAR + "_violent_postcleaned.csv"
 
 def get_headers(filename):
     with open(filename) as f:
@@ -56,49 +61,120 @@ def post_cleaning(dict_list, headers, filename):
 		f_csv.writeheader()
 		f_csv.writerows(dict_list)
 
-def main():
-	dict_list = get_data_list_of_dicts(_FILEPATH)
-	headers = get_headers(_FILEPATH)
-	(dict_list, encoders) = handle_categorical(dict_list, ['Block', 'Location Description'])
-	post_cleaning(dict_list, headers, _POSTCLEANEDPATH)
+def visualize_classifier(classifier, X, y):
+    # Define the minimum and maximum values for X and Y
+    # that will be used in the mesh grid
+    min_x, max_x = X.iloc[:, 0].min() - 1.0, X.iloc[:, 0].max() + 1.0
+    min_y, max_y = X.iloc[:, 1].min() - 1.0, X.iloc[:, 1].max() + 1.0
 
-	data = pd.read_csv(_POSTCLEANEDPATH)
+    # Define the step size to use in plotting the mesh grid 
+    mesh_step_size = 0.01
+
+    # Define the mesh grid of X and Y values
+    x_vals, y_vals = np.meshgrid(np.arange(min_x, max_x, mesh_step_size), np.arange(min_y, max_y, mesh_step_size))
+
+    # Run the classifier on the mesh grid
+    output = classifier.predict(np.c_[x_vals.ravel(), y_vals.ravel()])
+
+    # Reshape the output array
+    output = output.reshape(x_vals.shape)
+
+    # Create a plot
+    plt.figure()
+
+    # Choose a color scheme for the plot 
+    plt.pcolormesh(x_vals, y_vals, output, cmap=plt.cm.gray)
+
+    # Overlay the training points on the plot 
+    plt.scatter(X.iloc[:, 0], X.iloc[:, 1], c=y, s=75, edgecolors='black', linewidth=1, cmap=plt.cm.Paired)
+
+    # Specify the boundaries of the plot
+    plt.xlim(x_vals.min(), x_vals.max())
+    plt.ylim(y_vals.min(), y_vals.max())
+
+    # Specify the ticks on the X and Y axes
+    plt.xticks((np.arange(int(X.iloc[:, 0].min() - 1), int(X.iloc[:, 0].max() + 1), 1.0)))
+    plt.yticks((np.arange(int(X.iloc[:, 1].min() - 1), int(X.iloc[:, 1].max() + 1), 1.0)))
+
+    plt.show()
+
+
+def main():
+	dict_list = get_data_list_of_dicts(_FILE2002)
+	headers = get_headers(_FILE2002)
+	(dict_list, encoders) = handle_categorical(dict_list, ['Block', 'Location Description'])
+	post_cleaning(dict_list, headers, _POSTCLEANED2002)
+
+	data = pd.read_csv(_POSTCLEANED2002)
 	data = data.fillna(0)
-	print data.describe()
+	#print data.describe()
 	
 	headers.remove("Violent")
 	X_train, X_test, y_train, y_test = split_dataset(data, 0.8, headers, ["Violent"])
 
+	'''
 	print "X_train Shape: ", X_train.shape
 	print "y_train Shape: ", y_train.shape
 	print "X_test Shape: ", X_test.shape
 	print "y_test Shape: ", y_test.shape
-
-	clf = RandomForestClassifier(oob_score=True, max_depth = 10)
-	clf.fit(X_train, y_train)
-
-	index = 0
-	'''
-	for tree_ in clf.estimators_:
-		if (index > 1):
-			break;
-		with open('../visuals/depth=10_tree_' + str(index) + '.dot', 'w') as visual:
-			visual = tree.export_graphviz(tree_, out_file = visual)
-		index = index + 1
 	'''
 
-	importances = clf.feature_importances_
-	indices = np.argsort(importances)
+	##################################################################
+	#testing using _YEAR
+	dict_list_test = get_data_list_of_dicts(_FILETEST)
+	headers_test = get_headers(_FILETEST)
+	(dict_list_test, encoders_test) = handle_categorical(dict_list_test, ['Block', 'Location Description'])
+	post_cleaning(dict_list_test, headers_test, _POSTCLEANEDTEST)
 
-	for f in range(X_train.shape[1]):
-		print("%d. feature %s (%f)" % (f + 1, headers[indices[f]], importances[indices[f]]))
-	
-	print("Trained model: ", clf)
+	data_test = pd.read_csv(_POSTCLEANEDTEST)
+	headers_test.remove("Violent")
+	X_train_test, X_test_test, y_train_test, y_test_test = split_dataset(data, 0.0, headers, ["Violent"])
+	##################################################################
 
-	predictions = clf.predict(X_test)
+	for i in range (1, 2):
+		clf = RandomForestClassifier(oob_score=True, max_depth = None, random_state=0)
+		clf.fit(X_train, y_train)
+		print("Max depth:", clf.max_depth)
 
-	print "Train Accuracy: ", accuracy_score(y_train, clf.predict(X_train))
-	print "Test Accuracy: ", accuracy_score(y_test, predictions)
+		##################################################################
+		#prediction for _YEAR
+		predictions_test = clf.predict(X_test_test)
+		arr_y_test_test = np.ravel(y_test_test)
+		arr_predictions_test = np.ravel(predictions_test)
+		print "Test Accuracy ", _YEAR, ": ", accuracy_score(y_test_test, predictions_test)
+
+		#visualize_classifier(clf, X_train, y_train);
+
+		cfs_matrix_test = confusion_matrix(y_test_test, predictions_test, labels=[0, 1, 2])
+		print cfs_matrix_test
+		
+		##################################################################
+
+		index = 0
+		'''
+		for tree_ in clf.estimators_:
+			if (index > 1):
+				break;
+			with open('../visuals/depth=10_tree_' + str(index) + '.dot', 'w') as visual:
+				visual = tree.export_graphviz(tree_, out_file = visual)
+			index = index + 1
+		'''
+
+		importances = clf.feature_importances_
+		indices = np.argsort(importances)
+
+		for f in range(X_train.shape[1]):
+			print("%d. feature %s (%f)" % (f + 1, headers[indices[f]], importances[indices[f]]))
+		
+		#print("Trained model: ", clf)
+
+		predictions = clf.predict(X_test)
+
+		print "Train Accuracy 2002: ", accuracy_score(y_train, clf.predict(X_train))
+		print "Test Accuracy 2002: ", accuracy_score(y_test, predictions)
+
+		mat = confusion_matrix(y_test, predictions, labels=[0, 1, 2])
+		print mat
 
 if __name__ == "__main__":
 	main()
