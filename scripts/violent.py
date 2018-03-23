@@ -3,7 +3,7 @@ import pandas as pd
 import csv
 import io
 import matplotlib.pyplot as plt
-import seaborn as sns; sns.set()
+#import seaborn as sns; sns.set()
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
@@ -13,7 +13,7 @@ from sklearn import datasets
 from sklearn import preprocessing
 from sklearn import tree
 
-_YEAR = "2004"
+_YEAR = "2003"
 _FILE2002 = "../data/2002_violent_cleaned.csv"
 _POSTCLEANED2002 = "../data/2002_violent_postcleaned.csv"
 _FILETEST = "../data/" + _YEAR + "_violent_cleaned.csv"
@@ -131,8 +131,10 @@ def main():
 	X_train_test, X_test_test, y_train_test, y_test_test = split_dataset(data, 0.0, headers, ["Violent"])
 	##################################################################
 
+	#depth_train_test2002_test2003 = dict()
+
 	for i in range (1, 2):
-		clf = RandomForestClassifier(oob_score=True, max_depth = None, random_state=0)
+		clf = RandomForestClassifier(oob_score=True, max_depth = i, random_state=0)
 		clf.fit(X_train, y_train)
 		print("Max depth:", clf.max_depth)
 
@@ -141,7 +143,8 @@ def main():
 		predictions_test = clf.predict(X_test_test)
 		arr_y_test_test = np.ravel(y_test_test)
 		arr_predictions_test = np.ravel(predictions_test)
-		print "Test Accuracy ", _YEAR, ": ", accuracy_score(y_test_test, predictions_test)
+		test_20xx = accuracy_score(y_test_test, predictions_test)
+		print "Test Accuracy ", _YEAR, ": ", test_20xx
 
 		#visualize_classifier(clf, X_train, y_train);
 
@@ -170,11 +173,18 @@ def main():
 
 		predictions = clf.predict(X_test)
 
-		print "Train Accuracy 2002: ", accuracy_score(y_train, clf.predict(X_train))
-		print "Test Accuracy 2002: ", accuracy_score(y_test, predictions)
+		train_2002 = accuracy_score(y_train, clf.predict(X_train))
+		test_2002 = accuracy_score(y_test, predictions)
+		print "Train Accuracy 2002: ", train_2002
+		print "Test Accuracy 2002: ", test_2002
 
+		#depth_train_test2002_test2003[i] = (train_2002, test_2002, test_20xx)
 		mat = confusion_matrix(y_test, predictions, labels=[0, 1, 2])
 		print mat
 
+	#with open("depth_accuracy.txt",'w') as f:
+	#	for key, val in depth_train_test2002_test2003.items():
+	#		row_text = str(key) + "\t" + str(val[0]) + "\t" + str(val[1]) + "\t" + str(val[2]) + "\n"
+	#		f.write(row_text)
 if __name__ == "__main__":
 	main()
