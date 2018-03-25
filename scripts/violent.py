@@ -13,11 +13,12 @@ from sklearn import datasets
 from sklearn import preprocessing
 from sklearn import tree
 
-_YEAR = "2003"
+_YEAR = "2012"
 _FILE2002 = "../data/2002_violent_cleaned.csv"
 _POSTCLEANED2002 = "../data/2002_violent_postcleaned.csv"
 _FILETEST = "../data/" + _YEAR + "_violent_cleaned.csv"
 _POSTCLEANEDTEST = "../data/" + _YEAR + "_violent_postcleaned.csv"
+_OUTFILENAME = "../year_output/" + _YEAR + "_output.txt"
 
 def get_headers(filename):
     with open(filename) as f:
@@ -110,7 +111,7 @@ def main():
 	#print data.describe()
 	
 	headers.remove("Violent")
-	X_train, X_test, y_train, y_test = split_dataset(data, 0.8, headers, ["Violent"])
+	X_train, X_test, y_train, y_test = split_dataset(data, 0.7, headers, ["Violent"])
 
 	'''
 	print "X_train Shape: ", X_train.shape
@@ -133,55 +134,66 @@ def main():
 
 	#depth_train_test2002_test2003 = dict()
 
-	for i in range (1, 2):
-		clf = RandomForestClassifier(oob_score=True, max_depth = i, random_state=0)
-		clf.fit(X_train, y_train)
-		print("Max depth:", clf.max_depth)
+	#for i in range (1, 2):
+	clf = RandomForestClassifier(oob_score=True, max_depth = None, random_state=0)
+	clf.fit(X_train, y_train)
 
-		##################################################################
-		#prediction for _YEAR
-		predictions_test = clf.predict(X_test_test)
-		arr_y_test_test = np.ravel(y_test_test)
-		arr_predictions_test = np.ravel(predictions_test)
-		test_20xx = accuracy_score(y_test_test, predictions_test)
-		print "Test Accuracy ", _YEAR, ": ", test_20xx
+	##################################################################
+	#prediction for _YEAR
+	predictions_test = clf.predict(X_test_test)
+	arr_y_test_test = np.ravel(y_test_test)
+	arr_predictions_test = np.ravel(predictions_test)
+	test_20xx = accuracy_score(y_test_test, predictions_test)
+	print "Test Accuracy ", _YEAR, ": ", test_20xx
 
-		#visualize_classifier(clf, X_train, y_train);
+	#visualize_classifier(clf, X_train, y_train);
 
-		cfs_matrix_test = confusion_matrix(y_test_test, predictions_test, labels=[0, 1, 2])
-		print cfs_matrix_test
-		
-		##################################################################
+	cfs_matrix_test = confusion_matrix(y_test_test, predictions_test, labels=[0, 1, 2])
+	print cfs_matrix_test
+	
+	##################################################################
 
-		index = 0
-		'''
-		for tree_ in clf.estimators_:
-			if (index > 1):
-				break;
-			with open('../visuals/depth=10_tree_' + str(index) + '.dot', 'w') as visual:
-				visual = tree.export_graphviz(tree_, out_file = visual)
-			index = index + 1
-		'''
+	index = 0
+	'''
+	for tree_ in clf.estimators_:
+		if (index > 1):
+			break;
+		with open('../visuals/depth=10_tree_' + str(index) + '.dot', 'w') as visual:
+			visual = tree.export_graphviz(tree_, out_file = visual)
+		index = index + 1
+	'''
 
-		importances = clf.feature_importances_
-		indices = np.argsort(importances)
+	importances = clf.feature_importances_
+	indices = np.argsort(importances)
 
-		for f in range(X_train.shape[1]):
-			print("%d. feature %s (%f)" % (f + 1, headers[indices[f]], importances[indices[f]]))
-		
-		#print("Trained model: ", clf)
+	importances_str = ""
+	for f in range(X_train.shape[1]):
+		importances_str = importances_str + str(f+1) + ". feature " + headers[indices[f]] + " (" + str(importances[indices[f]]) + ")\n" 
+	print importances_str
+	
+	#print("Trained model: ", clf)
 
-		predictions = clf.predict(X_test)
+	predictions = clf.predict(X_test)
 
-		train_2002 = accuracy_score(y_train, clf.predict(X_train))
-		test_2002 = accuracy_score(y_test, predictions)
-		print "Train Accuracy 2002: ", train_2002
-		print "Test Accuracy 2002: ", test_2002
+	train_2002 = accuracy_score(y_train, clf.predict(X_train))
+	test_2002 = accuracy_score(y_test, predictions)
+	print "Train Accuracy 2002: ", train_2002
+	print "Test Accuracy 2002: ", test_2002
 
-		#depth_train_test2002_test2003[i] = (train_2002, test_2002, test_20xx)
-		mat = confusion_matrix(y_test, predictions, labels=[0, 1, 2])
-		print mat
+	#depth_train_test2002_test2003[i] = (train_2002, test_2002, test_20xx)
+	mat = confusion_matrix(y_test, predictions, labels=[0, 1, 2])
+	print mat
 
+	#write the output for each year
+	# with open(_OUTFILENAME, 'w') as output_year:
+	# 	output_1 = "Accuracy: " + str(test_20xx) + "\n"
+	# 	output_year.write(output_1)
+	# 	output_2 = "Confusion Matrix: \n"
+	# 	output_year.write(output_2)
+	# 	output_year.write(np.array2string(cfs_matrix_test) + "\n")
+	# 	output_year.write(importances_str)
+
+	#write the accuracy scores for each depth to a file
 	#with open("depth_accuracy.txt",'w') as f:
 	#	for key, val in depth_train_test2002_test2003.items():
 	#		row_text = str(key) + "\t" + str(val[0]) + "\t" + str(val[1]) + "\t" + str(val[2]) + "\n"
