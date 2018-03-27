@@ -13,11 +13,12 @@ from sklearn import datasets
 from sklearn import preprocessing
 from sklearn import tree
 
-_YEAR = "2012"
+_YEAR = "2011"
 _FILE2002 = "../data/2002_violent_cleaned.csv"
 _POSTCLEANED2002 = "../data/2002_violent_postcleaned.csv"
 _FILETEST = "../data/" + _YEAR + "_violent_cleaned.csv"
 _POSTCLEANEDTEST = "../data/" + _YEAR + "_violent_postcleaned.csv"
+_PREDICTED = "../data" + _YEAR + "_violent_predicted.csv"
 _OUTFILENAME = "../year_output/" + _YEAR + "_output.txt"
 
 def get_headers(filename):
@@ -53,7 +54,8 @@ def handle_categorical(dict_list, cat_headers):
 	return (dict_list, encoders)
 
 def split_dataset(data, train_percentage, headers, target_header):
-    X_train, X_test, y_train, y_test = train_test_split(data[headers], data[target_header], train_size=train_percentage)
+    X_train, X_test, y_train, y_test = train_test_split(data[headers], data[target_header])
+    #train_size=train_percentage
     return X_train, X_test, y_train, y_test
 
 def post_cleaning(dict_list, headers, filename):
@@ -109,9 +111,8 @@ def main():
 	data = pd.read_csv(_POSTCLEANED2002)
 	data = data.fillna(0)
 	#print data.describe()
-	
 	headers.remove("Violent")
-	X_train, X_test, y_train, y_test = split_dataset(data, 0.7, headers, ["Violent"])
+	X_train, X_test, y_train, y_test = split_dataset(data, 0.8, headers, ["Violent"])
 
 	'''
 	print "X_train Shape: ", X_train.shape
@@ -128,8 +129,9 @@ def main():
 	post_cleaning(dict_list_test, headers_test, _POSTCLEANEDTEST)
 
 	data_test = pd.read_csv(_POSTCLEANEDTEST)
+	data_test = data_test.fillna(0)
 	headers_test.remove("Violent")
-	X_train_test, X_test_test, y_train_test, y_test_test = split_dataset(data, 0.0, headers, ["Violent"])
+	X_train_test, X_test_test, y_train_test, y_test_test = split_dataset(data_test, 0.0, headers_test, ["Violent"])
 	##################################################################
 
 	#depth_train_test2002_test2003 = dict()
@@ -145,6 +147,9 @@ def main():
 	arr_predictions_test = np.ravel(predictions_test)
 	test_20xx = accuracy_score(y_test_test, predictions_test)
 	print "Test Accuracy ", _YEAR, ": ", test_20xx
+
+	print arr_y_test_test
+	print arr_predictions_test
 
 	#visualize_classifier(clf, X_train, y_train);
 
